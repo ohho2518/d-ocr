@@ -2,8 +2,8 @@
 
 ## Phase 1: Database & Backend Setup
 - [x] Create database schema (documents, transactions, categories, matching_results)
-- [x] Set up file upload handling (S3 integration)
-- [x] Implement OCR API integration (mock data, ready for Gemini)
+- [x] Set up file upload handling (Supabase Storage)
+- [x] Implement OCR API integration (Gemini 2.0 Flash Vision API)
 - [x] Create transaction matching engine logic
 - [x] Build category auto-classification system
 - [x] Write database query helpers in server/db.ts
@@ -56,8 +56,16 @@
 - [ ] Phase 5: Testing & Polish - READY FOR TESTING
 - [ ] Phase 6: Deployment - READY
 
+## Infrastructure Migration (completed 2026-05-09)
+- [x] Storage: Manus Forge S3 → Supabase Storage (bucket: documents)
+- [x] OCR: Mock data → Real Gemini 2.0 Flash Vision API
+- [x] Database: MySQL/mysql2 → Supabase PostgreSQL (postgres-js + drizzle pg-core)
+- [x] Schema: mysqlTable/mysqlEnum → pgTable/pgEnum/serial
+- [x] Added .env.example with all required environment variables
+
 ## MVP Features Delivered
 - Full OCR document upload system with drag-and-drop
+- Real Gemini Vision OCR extraction from receipts/bills/statements
 - Dashboard with income/expense overview and charts
 - Transaction list with edit/delete capabilities
 - Pastel cyan & pink wireframe design system
@@ -65,4 +73,4 @@
 - Grid background pattern
 - Navigation between pages
 - Authentication integration
-- Database persistence
+- Database persistence (Supabase PostgreSQL)
