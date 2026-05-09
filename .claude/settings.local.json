@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"D:\\\\Dev_Proj\\\\d_OCR\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(ConvertTo-Json -Depth 100)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Dev_Proj\\\\d_OCR\\\\ocr_finance_app\" -Recurse -File)",
+      "Bash(Select-Object FullName)"
+    ]
+  }
+}
