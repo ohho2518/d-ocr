@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Upload, TrendingUp, TrendingDown, DollarSign, FileText } from "lucide-react";
-import { getLoginUrl } from "@/const";
+import { LoginForm } from "@/components/LoginForm";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 
@@ -50,11 +50,7 @@ export default function Home() {
               </div>
             </div>
 
-            <a href={getLoginUrl()}>
-              <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                Sign In to Get Started
-              </Button>
-            </a>
+            <LoginForm />
           </div>
         </div>
       </div>
