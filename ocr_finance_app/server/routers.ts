@@ -5,8 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { TRPCError } from "@trpc/server";
-import { invokeLLM } from "./_core/llm";
-import { storagePut } from "./storage";
+import { storagePut, storageGetSignedUrl } from "./storage";
 
 export const appRouter = router({
   system: systemRouter,
@@ -72,33 +71,57 @@ export const appRouter = router({
             throw new TRPCError({ code: 'NOT_FOUND' });
           }
 
-          // Call LLM for OCR extraction
-          const ocrPrompt = `
-            Extract financial transaction data from this ${doc.documentType} document.
-            Return a JSON array with objects containing:
-            - date (YYYY-MM-DD format)
-            - description (transaction description)
-            - amount (numeric value)
-            - type ("income" or "expense")
-            - confidence (0-1 score)
-            
-            If the document is a bank statement, extract all transactions.
-            If it's a receipt or bill, extract the main transaction.
-            Return ONLY valid JSON array.
-          `;
+          // Download file from Supabase Storage
+          const signedUrl = await storageGetSignedUrl(doc.fileKey);
+          const fileResp = await fetch(signedUrl);
+          if (!fileResp.ok) {
+            throw new Error(`Failed to download document: ${fileResp.status}`);
+          }
+          const fileBuffer = await fileResp.arrayBuffer();
+          const base64Data = Buffer.from(fileBuffer).toString("base64");
 
-          // For now, return a simple mock response
-          // In production, integrate with actual OCR service
-          const mockOcrData = [
+          // Determine MIME type from file extension
+          const ext = doc.fileName.split(".").pop()?.toLowerCase() ?? "";
+          const mimeType =
+            ext === "pdf" ? "application/pdf"
+            : ext === "png" ? "image/png"
+            : ext === "jpg" || ext === "jpeg" ? "image/jpeg"
+            : "application/octet-stream";
+
+          // Call Gemini Vision API
+          const geminiApiKey = process.env.GEMINI_API_KEY;
+          if (!geminiApiKey) {
+            throw new Error("GEMINI_API_KEY is not set");
+          }
+
+          const geminiResp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
             {
-              date: new Date().toISOString().split('T')[0],
-              description: 'Document transaction',
-              amount: 0,
-              type: 'expense' as const,
-              confidence: 0.5,
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { inlineData: { mimeType, data: base64Data } },
+                    {
+                      text: "Extract financial transaction data from this document.\nReturn a JSON array with: date (YYYY-MM-DD), description, amount (number), type (income/expense), confidence (0-1).\nReturn ONLY valid JSON array, no markdown.",
+                    },
+                  ],
+                }],
+              }),
             },
-          ];
-          const response = { choices: [{ message: { content: JSON.stringify(mockOcrData) } }] };
+          );
+
+          if (!geminiResp.ok) {
+            const errText = await geminiResp.text().catch(() => geminiResp.statusText);
+            throw new Error(`Gemini API error (${geminiResp.status}): ${errText}`);
+          }
+
+          const geminiData = (await geminiResp.json()) as {
+            candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
+          };
+          const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
+          const response = { choices: [{ message: { content: rawText } }] };
 
           const ocrData = JSON.parse(response.choices[0].message.content);
 
