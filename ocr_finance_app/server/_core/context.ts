@@ -26,16 +26,21 @@ export async function createContext(
       const { data: { user: sbUser }, error } = await supabaseAdmin.auth.getUser(token);
 
       if (!error && sbUser) {
-        await db.upsertUser({
-          openId: sbUser.id,
-          email: sbUser.email ?? null,
-          name: (sbUser.user_metadata?.full_name as string | undefined)
-            ?? sbUser.email?.split("@")[0]
-            ?? null,
-          loginMethod: "email",
-          lastSignedIn: new Date(),
-        });
-        user = (await db.getUserByOpenId(sbUser.id)) ?? null;
+        try {
+          await db.upsertUser({
+            openId: sbUser.id,
+            email: sbUser.email ?? null,
+            name: (sbUser.user_metadata?.full_name as string | undefined)
+              ?? sbUser.email?.split("@")[0]
+              ?? null,
+            loginMethod: "email",
+            lastSignedIn: new Date(),
+          });
+          user = (await db.getUserByOpenId(sbUser.id)) ?? null;
+        } catch (dbErr) {
+          console.error("[Auth] DB error resolving user — is DATABASE_URL set correctly?", dbErr);
+          user = null;
+        }
       }
     }
   } catch {

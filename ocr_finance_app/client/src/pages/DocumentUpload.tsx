@@ -70,8 +70,15 @@ export default function DocumentUpload() {
     setUploading(true);
     try {
       for (const file of files) {
-        const buffer = await file.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString("base64");
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(",")[1]); // strip "data:...;base64,"
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
         // Determine document type
         let documentType: "receipt" | "bill" | "bank_statement" | "other" = "other";
